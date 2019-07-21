@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import socket, time, json
+import socket, time, json, logging
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
@@ -29,57 +29,70 @@ import tornado.web
 import tornado.websocket
 from collections import defaultdict
 
+logger = logging.getLogger(__name__)
+
+logger.setLevel(logging.DEBUG)
+
+file_handler = logging.FileHandler('server.log')
+formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
 client_addresses = defaultdict(list)
 client_accounts = defaultdict(list)
+
 
 class Data_Callback(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         receive_time = time.strftime("%d/%m/%Y %H:%M:%S")
         post_data = json.loads(self.request.body.decode('utf-8'))
-#        print("{}: {}".format(receive_time, post_data))
+
+        logger.info(("{}: {}".format(receive_time, post_data)))
+
         block_data = json.loads(post_data['block'])
         if block_data['link_as_account'] in client_addresses:
             tracking_address = block_data['link_as_account']
             clients = client_addresses[tracking_address]
             for client in clients:
-                print("{}: {}".format(receive_time, client, post_data))
+                logger.info("{}: {}".format(receive_time, client, post_data))
                 client.write_message(post_data)
-                print("Sent data")
+                logger.info("Sent data")
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
 
     def open(self):
-        print("WebSocket opened: {}".format(self))
+        logger.info("WebSocket opened: {}".format(self))
 
     @tornado.gen.coroutine
     def on_message(self, message):
-        print('Message from client {}: {}'.format(self, message))
+        logger.info('Message from client {}: {}'.format(self, message))
         if message != "Connected":
             try:
                 ws_data = json.loads(message)
                 if 'address' not in ws_data:
+                    logger.error('Incorrect data from client: {}'.format(ws_data))
                     raise Exception('Incorrect data from client: {}'.format(ws_data))
-                print(ws_data['address'])
+
+                logger.info(ws_data['address'])
+
                 client_addresses[ws_data['address']].append(self)
-                print(client_addresses)
                 client_accounts[self].append(ws_data['address'])
 
             except Exception as e:
-                print("Error {}".format(e))
+                logger.error("Error {}".format(e))
 
     def on_close(self):
-        print('Client disconnected - {}'.format(self))
+        logger.info('Client disconnected - {}'.format(self))
         accounts = client_accounts[self]
         for account in accounts:
             client_addresses[account].remove(self)
             if len(client_addresses[account]) == 0:
                 del client_addresses[account]
         del client_accounts[self]
-        print(client_addresses)
-        print(client_accounts)
 
 application = tornado.web.Application([
     (r"/callback/", Data_Callback),
@@ -91,7 +104,7 @@ def main():
 
     # websocket server
     myIP = socket.gethostbyname(socket.gethostname())
-    print('*** Websocket Server Started at %s***' % myIP)
+    logger.info('Websocket Server Started at %s' % myIP)
 
     # callback server
     application.listen(7090)
