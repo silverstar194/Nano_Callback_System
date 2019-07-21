@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import socket, time, json, logging, sys
+from logging.handlers import RotatingFileHandler
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
@@ -31,7 +32,8 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-file_handler = logging.FileHandler(filename='server.log')
+file_handler = RotatingFileHandler('server.log', mode='a', maxBytes=5*1024, backupCount=2, encoding=None, delay=0)
+
 handlers = [file_handler]
 
 if not "--silent" in sys.argv[1:]:
