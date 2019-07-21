@@ -53,7 +53,7 @@ past_blocks = []
 class Data_Callback(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
-        receive_time = time.strftime("%d/%m/%Y %H:%M:%S")
+        receive_time = time.time()
         post_data = json.loads(self.request.body.decode('utf-8'))
 
         logger.info(("{}: {}".format(receive_time, post_data)))
