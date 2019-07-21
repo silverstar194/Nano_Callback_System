@@ -32,8 +32,10 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 file_handler = logging.FileHandler(filename='server.log')
-stdout_handler = logging.StreamHandler(sys.stdout)
-handlers = [file_handler, stdout_handler]
+handlers = [file_handler]
+
+if not "--silent" in sys.argv[1:]:
+    handlers.append(logging.StreamHandler(sys.stdout))
 
 logging.basicConfig(
     level=logging.DEBUG,
