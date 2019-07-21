@@ -47,6 +47,7 @@ logging.basicConfig(
 
 client_addresses = defaultdict(list)
 client_accounts = defaultdict(list)
+past_blocks = []
 
 
 class Data_Callback(tornado.web.RequestHandler):
@@ -58,6 +59,11 @@ class Data_Callback(tornado.web.RequestHandler):
         logger.info(("{}: {}".format(receive_time, post_data)))
 
         block_data = json.loads(post_data['block'])
+        past_blocks.append((block_data, receive_time))
+
+        if len(past_blocks) > 50:
+            del past_blocks[0]
+
         if block_data['link_as_account'] in client_addresses:
             tracking_address = block_data['link_as_account']
             clients = client_addresses[tracking_address]
@@ -87,6 +93,16 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                 client_addresses[ws_data['address']].append(self)
                 client_accounts[self].append(ws_data['address'])
+
+                ##handle past blocks for race condition
+                for block in past_blocks:
+                    if block[0]['link_as_account'] == ws_data['address']:
+                        for client in client_addresses[ws_data['address']]:
+                            logger.info("{}: {}".format(block[0]['link_as_account'], client))
+                            client.write_message(block)
+                            logger.info("Sent data")
+
+
 
             except Exception as e:
                 logger.error("Error {}".format(e))
