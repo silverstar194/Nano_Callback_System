@@ -99,11 +99,9 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     logger.info("{}: {}".format(block[0]['link_as_account'], ws_data['address']))
                     if block[0]['link_as_account'] == ws_data['address']:
                         for client in client_addresses[ws_data['address']]:
-                            logger.info("{}: {}".format(block[0]['link_as_account'], client))
+                            logger.info("{}: {}".format(block[0]['link_as_account'], block[1]))
                             client.write_message(block)
                             logger.info("Sent data")
-
-
 
             except Exception as e:
                 logger.error("Error {}".format(e))
