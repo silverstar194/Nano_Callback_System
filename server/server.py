@@ -96,6 +96,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                 ##handle past blocks for race condition
                 for block in past_blocks:
+                    logger.info("{}: {}".format(block[0]['link_as_account'], ws_data['address']))
                     if block[0]['link_as_account'] == ws_data['address']:
                         for client in client_addresses[ws_data['address']]:
                             logger.info("{}: {}".format(block[0]['link_as_account'], client))
