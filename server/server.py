@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import socket, time, json, logging
+import socket, time, json, logging, sys
 import tornado.gen
 import tornado.ioloop
 import tornado.iostream
@@ -31,13 +31,15 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-logger.setLevel(logging.DEBUG)
+file_handler = logging.FileHandler(filename='server.log')
+stdout_handler = logging.StreamHandler(sys.stdout)
+handlers = [file_handler, stdout_handler]
 
-file_handler = logging.FileHandler('server.log')
-formatter = logging.Formatter('%(levelname)s %(asctime)s %(message)s')
-file_handler.setFormatter(formatter)
-
-logger.addHandler(file_handler)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(levelname)s] %(asctime)s %(message)s',
+    handlers=handlers
+)
 
 client_addresses = defaultdict(list)
 client_accounts = defaultdict(list)
