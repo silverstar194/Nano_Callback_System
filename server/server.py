@@ -69,7 +69,7 @@ class Data_Callback(tornado.web.RequestHandler):
             clients = client_addresses[tracking_address]
             for client in clients:
                 logger.info("{}: {}".format(receive_time, client, post_data))
-                client.write_message(str({"block_data":block_data, "time":receive_time}))
+                client.write_message(json.dumps({"block_data":block_data, "time":receive_time}))
                 logger.info("Sent data")
 
 class WSHandler(tornado.websocket.WebSocketHandler):
@@ -100,7 +100,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
                     if block[0]['link_as_account'] == ws_data['address']:
                         for client in client_addresses[ws_data['address']]:
                             logger.info("{}: {}".format(block[0]['link_as_account'], block[1]))
-                            client.write_message(str({"block_data":block[0], "time":block[1]}))
+                            client.write_message(json.dumps({"block_data":block[0], "time":block[1]}))
                             logger.info("Sent data")
 
             except Exception as e:
