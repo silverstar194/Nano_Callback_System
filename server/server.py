@@ -61,7 +61,7 @@ class Data_Callback(tornado.web.RequestHandler):
         block_data = json.loads(post_data['block'])
         past_blocks.append((block_data, receive_time))
 
-        if len(past_blocks) > 50:
+        if len(past_blocks) > 500:
             del past_blocks[0]
 
         if block_data['link_as_account'] in client_addresses:
