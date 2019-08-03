@@ -32,7 +32,7 @@ from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-file_handler = RotatingFileHandler('server.log', mode='a', maxBytes=5*1024*1024, backupCount=2, encoding=None, delay=0)
+file_handler = RotatingFileHandler('callback_server.log', mode='a', maxBytes=5*1024*1024, backupCount=2, encoding=None, delay=0)
 
 handlers = [file_handler]
 
@@ -45,8 +45,8 @@ logging.basicConfig(
     handlers=handlers
 )
 
-client_addresses = defaultdict(list)
-client_accounts = defaultdict(list)
+client_connections = defaultdict(list)
+client_hashes = defaultdict(list)
 past_blocks = []
 
 
@@ -64,11 +64,11 @@ class Data_Callback(tornado.web.RequestHandler):
         if len(past_blocks) > 500:
             del past_blocks[0]
 
-        if block_data['link_as_account'] in client_addresses:
-            tracking_address = block_data['link_as_account']
-            clients = client_addresses[tracking_address]
+        if block_data['hash'] in client_hashes:
+            tracking_hash = block_data['hash']
+            clients = client_connections[tracking_hash]
             for client in clients:
-                logger.info("{}: {}".format(receive_time, client, post_data))
+                logger.info("{}: {} {}".format(receive_time, client, post_data))
                 client.write_message(json.dumps({"block_data":block_data, "time":receive_time}))
                 logger.info("Sent data")
 
@@ -85,22 +85,22 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         if message != "Connected":
             try:
                 ws_data = json.loads(message)
-                if 'address' not in ws_data:
+                if 'hash' not in ws_data:
                     logger.error('Incorrect data from client: {}'.format(ws_data))
                     raise Exception('Incorrect data from client: {}'.format(ws_data))
 
-                logger.info(ws_data['address'])
+                logger.info(ws_data['hash'])
 
-                client_addresses[ws_data['address']].append(self)
-                client_accounts[self].append(ws_data['address'])
+                client_connections[ws_data['hash']].append(self)
+                client_hashes[self].append(ws_data['hash'])
 
                 ##handle past blocks for race condition
                 for block in past_blocks:
-                    logger.info("{}: {}".format(block[0]['link_as_account'], ws_data['address']))
-                    if block[0]['link_as_account'] == ws_data['address']:
-                        for client in client_addresses[ws_data['address']]:
-                            logger.info("{}: {}".format(block[0]['link_as_account'], block[1]))
-                            client.write_message(json.dumps({"block_data":block[0], "time":block[1]}))
+                    logger.info("{}".format(block[0]['hash']))
+                    if block[0]['hash'] == ws_data['hash']:
+                        for client in client_connections[ws_data['hash']]:
+                            logger.info("{}: {}".format(block[0]['hash'], block[1]))
+                            client.write_message(json.dumps({"hash":block[0], "time":block[1]}))
                             logger.info("Sent data")
 
             except Exception as e:
@@ -108,12 +108,12 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         logger.info('Client disconnected - {}'.format(self))
-        accounts = client_accounts[self]
+        accounts = client_connections[self]
         for account in accounts:
-            client_addresses[account].remove(self)
-            if len(client_addresses[account]) == 0:
-                del client_addresses[account]
-        del client_accounts[self]
+            client_connections[account].remove(self)
+            if len(client_connections[account]) == 0:
+                del client_connections[account]
+        del client_connections[self]
 
 application = tornado.web.Application([
     (r"/callback/", Data_Callback),
