@@ -58,7 +58,7 @@ class Data_Callback(tornado.web.RequestHandler):
 
         logger.info(("{}: {}".format(receive_time, post_data)))
 
-        block_data = json.loads(post_data['block'])
+        block_data = json.loads(post_data)
         past_blocks.append((block_data, receive_time))
 
         if len(past_blocks) > 500:
