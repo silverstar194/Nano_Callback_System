@@ -63,7 +63,7 @@ class Data_Callback(tornado.web.RequestHandler):
 
         if len(past_blocks) > 500:
             del past_blocks[0]
-
+        logger.info(("{}".format(block_data)))
         if block_data['hash'] in client_hashes:
             tracking_hash = block_data['hash']
             clients = client_connections[tracking_hash]
