@@ -58,15 +58,15 @@ class Data_Callback(tornado.web.RequestHandler):
 
         logger.info(("{}: {}".format(receive_time, post_data)))
 
-        block_data = json.loads(post_data)
-        past_blocks.append((block_data, receive_time))
+        block_data = json.loads(post_data['block'])
+        block_hash = post_data['hash']
+        past_blocks.append((block_data, block_hash, receive_time))
 
         if len(past_blocks) > 500:
             del past_blocks[0]
         logger.info(("{}".format(block_data)))
-        if block_data['hash'] in client_hashes:
-            tracking_hash = block_data['hash']
-            clients = client_connections[tracking_hash]
+        if block_hash in client_hashes:
+            clients = client_connections[block_hash]
             for client in clients:
                 logger.info("{}: {} {}".format(receive_time, client, post_data))
                 client.write_message(json.dumps({"block_data":block_data, "time":receive_time}))
@@ -96,11 +96,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                 ##handle past blocks for race condition
                 for block in past_blocks:
-                    logger.info("{}".format(block[0]['hash']))
-                    if block[0]['hash'] == ws_data['hash']:
+                    logger.info("{}".format(block[1]))
+                    if block[1] == ws_data['hash']:
                         for client in client_connections[ws_data['hash']]:
-                            logger.info("{}: {}".format(block[0]['hash'], block[1]))
-                            client.write_message(json.dumps({"hash":block[0], "time":block[1]}))
+                            logger.info("{} {}: {}".format(block[0], block[1], block[2]))
+                            client.write_message(json.dumps({"hash":block[1], "time":block[2]}))
                             logger.info("Sent data")
 
             except Exception as e:
