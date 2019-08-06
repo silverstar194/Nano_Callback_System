@@ -105,8 +105,8 @@ application = tornado.web.Application([
 
 def handle_node_ws():
     ## connect to socket
-
-    ws = create_connection("ws://127.0.1.2:7090")
+    logger.info("In method")
+    ws = create_connection("ws://127.0.0.1:7091")
     data = { "action": "subscribe", "topic": "confirmation" }
     ws.send(json.dumps(data))
     result = ws.recv()
@@ -152,6 +152,7 @@ def main():
     # callback server
     application.listen(7090)
 
+    logger.info("staring thread")
     ##start websocket to receive events
     executor.submit(handle_node_ws)
 
