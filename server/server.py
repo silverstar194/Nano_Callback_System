@@ -89,6 +89,7 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     @tornado.gen.coroutine
     def on_message(self, message):
         logger.info('Message from client {}: {}'.format(self, message))
+        logger.info(message)
         if message != "Connected":
             try:
                 ws_data = json.loads(message)
