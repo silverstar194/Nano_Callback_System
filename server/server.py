@@ -62,6 +62,11 @@ class Data_Callback(tornado.web.RequestHandler):
         block_hash = post_data['hash']
         past_blocks.append((block_data, block_hash, receive_time))
 
+        #receive block
+        if not "nano" in post_data['link'] or not "xrb" in post_data['link']:
+            block_link = post_data['link']
+            past_blocks.append((block_data, block_link, receive_time))
+
         if len(past_blocks) > 500:
             del past_blocks[0]
         logger.info(("{}".format(block_data)))
