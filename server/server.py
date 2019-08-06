@@ -64,8 +64,8 @@ class Data_Callback(tornado.web.RequestHandler):
         logger.info(("{}".format(block_data)))
 
         #receive block
-        if not "nano" in post_data['block']['link'] or not "xrb" in post_data['block']['link']:
-            block_link = post_data['link']
+        if not "nano" in block_data['link'] or not "xrb" in block_data['link']:
+            block_link = block_data['link']
             logger.info(("{}".format(block_link)))
             past_blocks.append((block_data, block_link, receive_time))
 
