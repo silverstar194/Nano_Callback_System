@@ -110,12 +110,12 @@ def handle_node_ws():
     data = { "action": "subscribe", "topic": "confirmation" }
     ws.send(json.dumps(data))
     result = ws.recv()
-    print("Subscribe '%s'" % result)
+    logger.info("Subscribe '%s'" % result)
 
     ## suscribe
     while True:
         result = ws.recv()
-        print("received event ", result)
+        logger.info("received event %s ", result)
         receive_time = int(round(time.time() * 1000))
         post_data = json.loads(result)
 
