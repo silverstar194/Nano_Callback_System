@@ -106,7 +106,7 @@ application = tornado.web.Application([
 def handle_node_ws():
     ## connect to socket
     logger.info("In method")
-    ws = create_connection("ws://127.0.0.1:7091")
+    ws = create_connection("127.0.0.1:7091")
     data = { "action": "subscribe", "topic": "confirmation" }
     ws.send(json.dumps(data))
     result = ws.recv()
