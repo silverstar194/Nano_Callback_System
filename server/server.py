@@ -30,6 +30,12 @@ import tornado.web
 import tornado.websocket
 from collections import defaultdict
 
+from concurrent.futures import ThreadPoolExecutor
+from websocket import create_connection
+
+executor = ThreadPoolExecutor(max_workers=1)
+
+
 logger = logging.getLogger(__name__)
 
 file_handler = RotatingFileHandler('callback_server.log', mode='a', maxBytes=5*1024*1024, backupCount=2, encoding=None, delay=0)
@@ -48,36 +54,6 @@ logging.basicConfig(
 client_connections = defaultdict(list)
 client_hashes = defaultdict(list)
 past_blocks = []
-
-
-class Data_Callback(tornado.web.RequestHandler):
-    @tornado.gen.coroutine
-    def post(self):
-        receive_time = int(round(time.time() * 1000))
-        post_data = json.loads(self.request.body.decode('utf-8'))
-
-        logger.info(("{}: {}".format(receive_time, post_data)))
-
-        block_data = json.loads(post_data['block'])
-        block_hash = post_data['hash']
-        past_blocks.append((block_data, block_hash, receive_time))
-        logger.info(("{}".format(block_data)))
-
-        #receive block
-        if not "nano" in block_data['link'] or not "xrb" in block_data['link']:
-            block_link = block_data['link']
-            logger.info(("{}".format(block_link)))
-            past_blocks.append((block_data, block_link, receive_time))
-
-        if len(past_blocks) > 500:
-            del past_blocks[0]
-
-        if block_hash in client_hashes:
-            clients = client_connections[block_hash]
-            for client in clients:
-                logger.info("{}: {} {}".format(receive_time, client, post_data))
-                client.write_message(json.dumps({"block_data":block_data, "time":receive_time}))
-                logger.info("Sent data")
 
 class WSHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
@@ -124,10 +100,47 @@ class WSHandler(tornado.websocket.WebSocketHandler):
         del client_connections[self]
 
 application = tornado.web.Application([
-    (r"/callback/", Data_Callback),
     (r"/call", WSHandler),
 ])
 
+def handle_node_ws():
+    ## connect to socket
+
+    ws = create_connection("ws://127.0.1.2:7090")
+    data = { "action": "subscribe", "topic": "confirmation" }
+    ws.send(json.dumps(data))
+    result = ws.recv()
+    print("Subscribe '%s'" % result)
+
+    ## suscribe
+    while True:
+        result = ws.recv()
+        print("received event ", result)
+        receive_time = int(round(time.time() * 1000))
+        post_data = json.loads(result)
+
+        logger.info(("{}: {}".format(receive_time, post_data)))
+
+        block_data = json.loads(post_data['block'])
+        block_hash = post_data['hash']
+        past_blocks.append((block_data, block_hash, receive_time))
+        logger.info(("{}".format(block_data)))
+
+        # receive block
+        if not "nano" in block_data['link'] or not "xrb" in block_data['link']:
+            block_link = block_data['link']
+            logger.info(("{}".format(block_link)))
+            past_blocks.append((block_data, block_link, receive_time))
+
+        if len(past_blocks) > 500:
+            del past_blocks[0]
+
+        if block_hash in client_hashes:
+            clients = client_connections[block_hash]
+            for client in clients:
+                logger.info("{}: {} {}".format(receive_time, client, post_data))
+                client.write_message(json.dumps({"block_data": block_data, "time": receive_time}))
+                logger.info("Sent data")
 
 def main():
 
@@ -135,8 +148,12 @@ def main():
     myIP = socket.gethostbyname(socket.gethostname())
     logger.info('Websocket Server Started at %s' % myIP)
 
+
     # callback server
     application.listen(7090)
+
+    ##start websocket to receive events
+    executor.submit(handle_node_ws)
 
     # infinite loop
     tornado.ioloop.IOLoop.instance().start()
