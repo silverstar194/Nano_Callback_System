@@ -61,15 +61,17 @@ class Data_Callback(tornado.web.RequestHandler):
         block_data = json.loads(post_data['block'])
         block_hash = post_data['hash']
         past_blocks.append((block_data, block_hash, receive_time))
+        logger.info(("{}".format(block_data)))
 
         #receive block
         if not "nano" in post_data['link'] or not "xrb" in post_data['link']:
             block_link = post_data['link']
+            logger.info(("{}".format(block_link)))
             past_blocks.append((block_data, block_link, receive_time))
 
         if len(past_blocks) > 500:
             del past_blocks[0]
-        logger.info(("{}".format(block_data)))
+
         if block_hash in client_hashes:
             clients = client_connections[block_hash]
             for client in clients:
