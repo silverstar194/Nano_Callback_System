@@ -105,17 +105,18 @@ application = tornado.web.Application([
 
 def handle_node_ws():
     ## connect to socket
-    logger.info("In method")
-    ws = create_connection("127.0.0.1:7091")
-    data = { "action": "subscribe", "topic": "confirmation" }
+    logger.info("Starting connection to socket")
+    ws = create_connection("ws://[::1]:7078")
+    data = { "action": "subscribe", "topic": "confirmation", "ack":True }
     ws.send(json.dumps(data))
     result = ws.recv()
-    logger.info("Subscribe '%s'" % result)
+    logger.info("Subscribe complete '%s'" % result)
 
     ## suscribe
     while True:
+        logger.info("Waiting for new block from node...")
         result = ws.recv()
-        logger.info("received event %s ", result)
+        logger.info("Received block %s ", result)
         receive_time = int(round(time.time() * 1000))
         post_data = json.loads(result)
 
@@ -148,11 +149,10 @@ def main():
     myIP = socket.gethostbyname(socket.gethostname())
     logger.info('Websocket Server Started at %s' % myIP)
 
-
     # callback server
     application.listen(7090)
 
-    logger.info("staring thread")
+    logger.info("Starting thread for websokcet")
     ##start websocket to receive events
     executor.submit(handle_node_ws)
 
